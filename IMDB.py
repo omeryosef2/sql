@@ -35,7 +35,7 @@ except Error as e:
     print("Error while connecting to MySQL", e)
 
 df = df.replace({np.nan: None})
-df['rating'] = df['rating'].replace('Not Rated', None)
+df["rating"] = df["rating"].replace("Not Rated", None)
 # insert_query = "INSERT INTO genres (imdbID, genre) VALUES (%s, %s) ON DUPLICATE KEY UPDATE genre=VALUES(genre);"
 #
 # for _, row in tqdm(df.iterrows(),total = df.shape[0]):
@@ -48,10 +48,9 @@ df['rating'] = df['rating'].replace('Not Rated', None)
 #         connection.rollback()
 
 # create_table_query = """
-# CREATE TABLE IF NOT EXISTS rating (
+# CREATE TABLE IF NOT EXISTS year (
 #     imdbID BIGINT PRIMARY KEY,
-#     imdbRating FLOAT,
-#     awards TEXT
+#     year INT
 # );
 # """
 # import mysql.connector
@@ -77,16 +76,15 @@ df['rating'] = df['rating'].replace('Not Rated', None)
 #         cursor.close()
 
 
-
 insert_query = """
-INSERT INTO rating (imdbID, imdbRating, awards) VALUES (%s, %s, %s)
-ON DUPLICATE KEY UPDATE imdbRating=VALUES(imdbRating), awards=VALUES(awards);
+INSERT INTO year (imdbID, year) VALUES (%s, %s)
+ON DUPLICATE KEY UPDATE year=VALUES(year);
 """
 
 # Ensure the cursor and connection are still open here
-for _, row in tqdm(df.iterrows(),total = df.shape[0]):
+for _, row in tqdm(df.iterrows(), total=df.shape[0]):
     # Convert rating to float to ensure proper type handling
-    data_tuple = (row["imdbID"], row["imdbRating"], row["awards"])
+    data_tuple = (row["imdbID"], row["year"])
     try:
         cursor = connection.cursor()
         cursor.execute(insert_query, data_tuple)
@@ -151,3 +149,4 @@ for _, row in tqdm(df.iterrows(),total = df.shape[0]):
 ##all the directors that made at least 5 movies in a certain genre with ratings that are above the average per genre
 ##cast members that participated in movies that won awards and made movies with at least 3 different writers
 ##count movies per genre and and year -- simple query
+
