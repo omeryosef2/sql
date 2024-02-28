@@ -146,7 +146,6 @@ df["rating"] = df["rating"].replace("Not Rated", None)
 #         connection.rollback()
 
 
-##all the directors that made at least 5 movies in a certain genre with ratings that are above the average per genre
 ##cast members that participated in movies that won awards and made movies with at least 3 different writers
 
 import mysql.connector
@@ -426,4 +425,26 @@ def query_5(): ##we added FULL-TEXT index on genre and now the query is uper fas
             connection.close()
 
 
-
+WITH RECURSIVE years AS (
+  SELECT 2010 as year -- Starting year
+  UNION ALL
+  SELECT year + 1 FROM years WHERE year < YEAR(CURDATE()) -- Ending with the current year
+),
+movies AS (
+  SELECT
+    oy.year,
+    COUNT(DISTINCT oc.imdbID) AS movies_counter,
+    AVG(orr.imdbRating) AS avg_Rating_per_year
+  FROM omeryosef.year oy
+  LEFT JOIN omeryosef.crew oc ON oy.imdbID = oc.imdbID AND oc.cast LIKE '%Will Smith%'
+  LEFT JOIN omeryosef.rating orr ON orr.imdbID = oc.imdbID
+  WHERE oy.year >= 2014
+  GROUP BY oy.year
+)
+SELECT
+  y.year,
+  COALESCE(m.movies_counter, 0) AS movies_counter,
+  COALESCE(m.avg_Rating_per_year, "No Rating") AS avg_Rating_per_year
+FROM years y
+LEFT JOIN movies m ON y.year = m.year
+ORDER BY y.year;
