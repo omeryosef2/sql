@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
+import mysql
 
 zip_path = "./IMDB.zip"
 csv_file_name = "IMDB.csv"  # Optional if the ZIP contains only one CSV file
@@ -149,4 +150,77 @@ for _, row in tqdm(df.iterrows(), total=df.shape[0]):
 ##all the directors that made at least 5 movies in a certain genre with ratings that are above the average per genre
 ##cast members that participated in movies that won awards and made movies with at least 3 different writers
 ##count movies per genre and and year -- simple query
+
+def query_1(): ##return movies by their genre
+    connection = mysql.connector.connect(
+        host="localhost",
+        database="omeryosef",
+        user="omeryosef",
+        password="omery58087",
+        port=3305
+    )
+    cnx = mysql.connector.connect(**connection)
+    cursor = cnx.cursor()
+    genre = input("Put here: ")  # This will prompt the user to input the genre
+    if len(genre) == 0:
+        genre = "Comedy"
+        print("You didn't choose your genre, so I will go with Comedy :)")
+    query = f"""
+    SELECT og.imdbID AS movieID
+           ,og.genre
+           ,ot.title
+    FROM omeryosef.genres og
+    INNER JOIN omeryosef.title ot ON ot.imdbId = og.imdbID 
+    WHERE og.genre LIKE '%{genre}%'
+    """
+    cursor.execute(query, (f'%{genre}%',))
+
+    # Fetch the results
+    results = cursor.fetchall()
+
+    # Close the cursor and connection
+    cursor.close()
+    cnx.close()
+
+    # Return or process the results as needed
+    return results
+
+
+def query_1():
+    connection = mysql.connector.connect(
+        host="localhost",
+        database="omeryosef",
+        user="omeryosef",
+        password="omery58087",
+        port=3305
+    )
+    cnx = mysql.connector.connect(**connection)
+    cursor = cnx.cursor()
+    genre = input("Put here: ")  # This will prompt the user to input the genre
+    if len(genre) == 0:
+        genre = "Comedy"
+        print("You didn't choose your genre, so I will go with Comedy :)")
+    query = f"""
+    SELECT og.imdbID AS movieID
+           ,og.genre
+           ,ot.title
+    FROM omeryosef.genres og
+    INNER JOIN omeryosef.title ot ON ot.imdbId = og.imdbID 
+    WHERE og.genre LIKE '%{genre}%'
+    """
+    cursor.execute(query, (f'%{genre}%',))
+
+    # Fetch the results
+    results = cursor.fetchall()
+
+    # Close the cursor and connection
+    cursor.close()
+    cnx.close()
+
+    # Return or process the results as needed
+    return results
+
+
+
+
 
