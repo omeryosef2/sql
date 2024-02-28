@@ -76,23 +76,23 @@ df["rating"] = df["rating"].replace("Not Rated", None)
 #     if connection.is_connected():
 #         cursor.close()
 
-
-insert_query = """
-INSERT INTO year (imdbID, year) VALUES (%s, %s)
-ON DUPLICATE KEY UPDATE year=VALUES(year);
-"""
-
-# Ensure the cursor and connection are still open here
-for _, row in tqdm(df.iterrows(), total=df.shape[0]):
-    # Convert rating to float to ensure proper type handling
-    data_tuple = (row["imdbID"], row["year"])
-    try:
-        cursor = connection.cursor()
-        cursor.execute(insert_query, data_tuple)
-        connection.commit()
-    except Error as e:
-        print(f"Error inserting data: {e}")
-        connection.rollback()
+#
+# insert_query = """
+# INSERT INTO year (imdbID, year) VALUES (%s, %s)
+# ON DUPLICATE KEY UPDATE year=VALUES(year);
+# """
+#
+# # Ensure the cursor and connection are still open here
+# for _, row in tqdm(df.iterrows(), total=df.shape[0]):
+#     # Convert rating to float to ensure proper type handling
+#     data_tuple = (row["imdbID"], row["year"])
+#     try:
+#         cursor = connection.cursor()
+#         cursor.execute(insert_query, data_tuple)
+#         connection.commit()
+#     except Error as e:
+#         print(f"Error inserting data: {e}")
+#         connection.rollback()
 
 # insert_query = """
 # INSERT INTO plot (imdbID, plot, fullplot) VALUES (%s, %s, %s)
@@ -186,39 +186,104 @@ def query_1(): ##return movies by their genre
     return results
 
 
-def query_1():
-    connection = mysql.connector.connect(
-        host="localhost",
-        database="omeryosef",
-        user="omeryosef",
-        password="omery58087",
-        port=3305
-    )
-    cnx = mysql.connector.connect(**connection)
-    cursor = cnx.cursor()
-    genre = input("Put here: ")  # This will prompt the user to input the genre
-    if len(genre) == 0:
-        genre = "Comedy"
-        print("You didn't choose your genre, so I will go with Comedy :)")
-    query = f"""
-    SELECT og.imdbID AS movieID
-           ,og.genre
-           ,ot.title
-    FROM omeryosef.genres og
-    INNER JOIN omeryosef.title ot ON ot.imdbId = og.imdbID 
-    WHERE og.genre LIKE '%{genre}%'
-    """
-    cursor.execute(query, (f'%{genre}%',))
+import mysql.connector
 
-    # Fetch the results
-    results = cursor.fetchall()
+import mysql.connector
 
-    # Close the cursor and connection
-    cursor.close()
-    cnx.close()
+def query_2():
+    try:
+        # Establish connection
+        connection = mysql.connector.connect(
+            host="localhost",
+            database="omeryosef",
+            user="omeryosef",
+            password="omery58087",
+            port=3305
+        )
+        cursor = connection.cursor()
 
-    # Return or process the results as needed
-    return results
+        # Input from user
+        year1 = input("Enter first year of the range in YYYY format: ")
+        year2 = input("Enter second year of the range in YYYY format: ")
+
+        # Defaulting years if not provided
+        if len(year1) == 0:
+            year1 = "1990"
+            print("You didn't choose the first year of the range, so I will go with 1990 :)")
+        if len(year2) == 0:
+            year2 = "2010"
+            print("You didn't choose the second year of the range, so I will go with 2010 :)")
+
+        # Prepare the query
+        query = """
+                SELECT ot.imdbID AS movieID,
+                       ot.title,
+                       oy.year,
+                       orr.imdbRating,
+                       orr.awards
+                FROM omeryosef.title ot
+                JOIN omeryosef.year oy ON oy.imdbID = ot.imdbID
+                JOIN omeryosef.rating orr ON orr.imdbID = ot.imdbID
+                WHERE oy.year BETWEEN %s AND %s
+        """
+        # Execute the query with parameters
+        cursor.execute(query, (year1, year2))
+
+        # Fetch the results
+        results = cursor.fetchall()
+        print(results)
+        return results
+
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+    finally:
+        # Clean up
+        if 'cursor' in locals():
+            cursor.close()
+        if 'connection' in locals() and connection.is_connected():
+            connection.close()
+
+def query_3():
+    try:
+        # Establish connection
+        connection = mysql.connector.connect(
+            host="localhost",
+            database="omeryosef",
+            user="omeryosef",
+            password="omery58087",
+            port=3305
+        )
+        cursor = connection.cursor()
+
+        # Prepare the query
+        query = """
+                select og.genre, 
+                        oy.year,
+                        count(distinct oy.imdbID) as movies_number
+                from omeryosef.year oy
+                join omeryosef.genres og
+                on og.imdbID = oy.imdbID
+                where og.genre is not null
+                group by og.genre, oy.year
+                having count(distinct oy.imdbID) > 100
+        """
+        # Execute the query with parameters
+        cursor.execute(query)
+
+        # Fetch the results
+        results = cursor.fetchall()
+        print(results)
+        return results
+
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+    finally:
+        # Clean up
+        if 'cursor' in locals():
+            cursor.close()
+        if 'connection' in locals() and connection.is_connected():
+            connection.close()
+
 
 
 
