@@ -146,10 +146,56 @@ df["rating"] = df["rating"].replace("Not Rated", None)
 #         connection.rollback()
 
 
-##take all fantasy movies with a certain minimum rating union movies from other genres that contain certain words in the plot
 ##all the directors that made at least 5 movies in a certain genre with ratings that are above the average per genre
 ##cast members that participated in movies that won awards and made movies with at least 3 different writers
-##count movies per genre and and year -- simple query
+
+import mysql.connector
+from mysql.connector import Error
+
+def create_index(sql_command):
+    try:
+        # Connect to the MySQL database
+        connection = mysql.connector.connect(
+            host="localhost",
+            database="omeryosef",
+            user="omeryosef",
+            password="omery58087",
+            port=3305
+        )
+
+        # Create a cursor object
+        cursor = connection.cursor()
+
+        # SQL command to create an index on the 'year' column of the 'year' table
+        create_index_sql = sql_command
+
+        # Execute the SQL command
+        cursor.execute(create_index_sql)
+
+        # Commit the changes to the database
+        connection.commit()
+
+        print("Index created successfully.")
+
+    except Error as e:
+        print(f"Error: {e}")
+
+    finally:
+        # Close the cursor and the connection
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+            print("MySQL connection is closed.")
+
+# Call the function to create the index
+create_index("CREATE INDEX idx_year ON omeryosef.year(year);")
+create_index("ALTER TABLE omeryosef.genres ADD FULLTEXT(genre);")
+
+
+
+
+
+#########QUERIES
 
 def query_1(): ##return movies by their genre
     connection = mysql.connector.connect(
@@ -284,8 +330,100 @@ def query_3():
         if 'connection' in locals() and connection.is_connected():
             connection.close()
 
+def query_4(): ##need to add FULL-TEXT index for this to work
+    try:
+        # Establish connection
+        connection = mysql.connector.connect(
+            host="localhost",
+            database="omeryosef",
+            user="omeryosef",
+            password="omery58087",
+            port=3305
+        )
+        cursor = connection.cursor()
 
+        # Prepare the query
+        query = """
+                select og.imdbID
+                from omeryosef.genres og
+                where og.genre like '%Fantasy%'
+                union all
+                SELECT op.imdbID
+                FROM omeryosef.plot op
+                WHERE MATCH(op.fullplot) AGAINST('magic')
+        """
+        # Execute the query with parameters
+        cursor.execute(query)
 
+        # Fetch the results
+        results = cursor.fetchall()
+        print(results)
+        return results
+
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+    finally:
+        # Clean up
+        if 'cursor' in locals():
+            cursor.close()
+        if 'connection' in locals() and connection.is_connected():
+            connection.close()
+
+def query_5(): ##we added FULL-TEXT index on genre and now the query is uper fast (good cause
+    ##genre is used both in join and group by hence the index is very useful)
+    try:
+        # Establish connection
+        connection = mysql.connector.connect(
+            host="localhost",
+            database="omeryosef",
+            user="omeryosef",
+            password="omery58087",
+            port=3305
+        )
+        cursor = connection.cursor()
+
+        # Prepare the query
+        query = """
+            WITH avg_ratings AS (
+                SELECT og.genre
+                      ,AVG(orr.imdbRating) AS avg_rating
+                FROM omeryosef.genres og
+                JOIN omeryosef.rating orr ON orr.imdbID = og.imdbID
+                GROUP BY og.genre
+            ), rated_movies AS (
+                SELECT orr.imdbID
+                      ,orr.imdbRating
+                      ,og.genre
+                      ,oc.director
+                FROM omeryosef.rating orr
+                JOIN omeryosef.genres og ON og.imdbID = orr.imdbID
+                JOIN omeryosef.crew oc ON oc.imdbID = orr.imdbID
+            )
+            SELECT director
+                  ,COUNT(DISTINCT imdbID) AS movie_count
+            FROM rated_movies rm
+            JOIN avg_ratings ar ON rm.genre = ar.genre
+            WHERE rm.imdbRating > ar.avg_rating
+            and director is not null
+            GROUP BY director
+            HAVING COUNT(DISTINCT imdbID) > 5;
+        """
+        # Execute the query with parameters
+        cursor.execute(query)
+
+        # Fetch the results
+        results = cursor.fetchall()
+        print(results)
+        return results
+
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+    finally:
+        # Clean up
+        if 'cursor' in locals():
+            cursor.close()
+        if 'connection' in locals() and connection.is_connected():
+            connection.close()
 
 
 
