@@ -192,8 +192,6 @@ create_index("ALTER TABLE omeryosef.genres ADD FULLTEXT(genre);")
 
 
 
-
-
 #########QUERIES
 
 def query_1(): ##return movies by their genre
