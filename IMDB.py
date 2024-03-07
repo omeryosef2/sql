@@ -191,6 +191,8 @@ def create_index(sql_command):
 # Call the function to create the index
 create_index("CREATE INDEX idx_year ON omeryosef.year(year);")
 create_index("ALTER TABLE omeryosef.genres ADD FULLTEXT(genre);")
+create_index("ALTER TABLE omeryosef.plot ADD FULLTEXT(fullplot);")
+
 
 
 

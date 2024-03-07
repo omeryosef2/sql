@@ -1,87 +1,89 @@
 import pandas as pd
 import numpy as np
+import mysql
 import mysql.connector
 from mysql.connector import Error
+pd.set_option('display.max_columns', None)
 
 def create_connection():
-    try:
-        connection_params = {
-            "host": "localhost",
-            "database": "omeryosef",
-            "user": "omeryosef",
-            "password": "omery58087",
-            "port": 3305,
-        }
-        print(type(connection_params))
-        cnx = mysql.connector.connect(**connection_params)
-        if cnx.is_connected():
-            print("Successfully connected to the database")
-            cursor = cnx.cursor()
-            return cnx, cursor  # Return both the connection and cursor
-        else:
-            print("Connection was unsuccessful")
-            return None, None
-    except Error as e:
-        print(f"Error connecting to MySQL: {e}")
-        return None, None
+    connection_params = {
+        "host": "localhost",
+        "database": "omeryosef",
+        "user": "omeryosef",
+        "password": "omery58087",
+        "port": 3305
+    }
+    cnx = mysql.connector.connect(**connection_params)
+    return cnx
 
 
 def query_1(genre=None):
-    cnx, cursor = create_connection()  # Unpack the returned tuple
+    """
+    Returns movies by their genre.
 
-    if cnx is None or cursor is None:
-        print("Failed to connect to the database.")
-        return None
-
-    if genre is None:
-        genre = input("Put here: ")  # This will prompt the user to input the genre
-    if len(genre) == 0:
-        genre = "Comedy"
-        print("You didn't choose your genre, so I will go with Comedy :)")
-
-    query = """
-    SELECT og.imdbID AS movieID, og.genre, ot.title
-    FROM omeryosef.genres og
-    INNER JOIN omeryosef.title ot ON ot.imdbId = og.imdbID 
-    WHERE MATCH(og.genre) AGAINST(%s IN BOOLEAN MODE)
+    An index on the genre column can significantly improve query performance,
+    especially for full-text search queries like this.
     """
     try:
-        cursor.execute(query, (genre,))  # Use parameterized query for safety
-        results = cursor.fetchall()
-    except Error as e:
-        print(f"Error executing query: {e}")
-        results = None
-
-    # Close the cursor and connection
-    cursor.close()
-    cnx.close()
-
-    return results
-
-
-def query_2(year1 = None, year2 = None):
-    ##explain why we have index on year column
-    try:
-        # Establish connection
         cnx = create_connection()
         cursor = cnx.cursor()
 
-        if year1 == None:
+        if genre is None:
+            genre = input("Enter genre: ").strip()  # This will prompt the user to input the genre
+            if not genre:
+                genre = "Comedy"
+                print("You didn't choose a genre, so I will go with Comedy :)")
+
+        # Use parameterized query to prevent SQL injection
+        query = """
+        SELECT og.imdbID AS movieID,
+               og.genre,
+               ot.title
+        FROM omeryosef.genres og
+        INNER JOIN omeryosef.title ot ON ot.imdbId = og.imdbID
+        WHERE MATCH(og.genre) AGAINST(%s IN BOOLEAN MODE)
+        """
+        cursor.execute(query, (genre,))
+
+        # Fetch the results
+        results = cursor.fetchall()
+
+        # Create DataFrame with specified column names
+        df = pd.DataFrame(results, columns=['MovieID', 'Genre', 'Title'])
+
+        return df
+
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+        return pd.DataFrame()  # Return an empty DataFrame in case of error
+    finally:
+        # Clean up
+        if cursor is not None:
+            cursor.close()
+        if cnx is not None and cnx.is_connected():
+            cnx.close()
+
+
+def query_2(year1=None, year2=None):
+    try:
+        cnx = create_connection()
+        cursor = cnx.cursor()
+
+        if year1 is None:
             year1 = input("Enter first year of the range in YYYY format: ")
-        if year2 == None:
+        if year2 is None:
             year2 = input("Enter second year of the range in YYYY format: ")
 
-        # Defaulting years if not provided
-        if len(year1) == 0:
+        # Defaulting years if not provided or incorrectly provided
+        if len(str(year1)) != 4:
             year1 = "1990"
             print("You didn't choose the first year of the range, so I will go with 1990 :)")
-        if len(year2) == 0:
+        if len(str(year2)) != 4:
             year2 = "2010"
             print("You didn't choose the second year of the range, so I will go with 2010 :)")
 
         if year1 > year2:
-            year1 = "1990"
-            year2 = "2010"
+            year1, year2 = "1990", "2010"  # Swap to default values if the range is incorrect
             print("We got you, malicious user!")
 
         # Prepare the query
@@ -101,8 +103,11 @@ def query_2(year1 = None, year2 = None):
 
         # Fetch the results
         results = cursor.fetchall()
-        print(results)
-        return results
+
+        # Create DataFrame with specified column names
+        df = pd.DataFrame(results, columns=['MovieID', 'Title', 'Year', 'IMDbRating', 'Awards'])
+
+        return df
 
     except mysql.connector.Error as err:
         print(f"Error: {err}")
@@ -110,41 +115,44 @@ def query_2(year1 = None, year2 = None):
         # Clean up
         if 'cursor' in locals():
             cursor.close()
-        if 'connection' in locals() and cnx.is_connected():
+        if 'cnx' in locals() and cnx.is_connected():
             cnx.close()
 
-def query_3(num_of_movies = None):
-    ##we have index on genre and year - explain why it helps
+def query_3(num_of_movies=None):
     try:
         # Establish connection
         cnx = create_connection()
         cursor = cnx.cursor()
 
-        if num_of_movies == None:
+        if num_of_movies is None:
             num_of_movies = input("Enter the min number of movies per year: ")
+            try:
+                num_of_movies = int(num_of_movies)
+            except ValueError:
+                num_of_movies = 100
+                print("You can't fool me")
 
-        if type(num_of_movies) != int:
-            num_of_movies = 100
-            print("You can't fool me")
         # Prepare the query
         query = """
-                select og.genre, 
-                        oy.year,
-                        count(distinct oy.imdbID) as movies_number
-                from omeryosef.year oy
-                join omeryosef.genres og
-                on og.imdbID = oy.imdbID
-                where og.genre is not null
-                group by og.genre, oy.year
-                having count(distinct oy.imdbID) > %s
+                SELECT og.genre, 
+                       oy.year,
+                       COUNT(DISTINCT oy.imdbID) AS movies_number
+                FROM omeryosef.year oy
+                JOIN omeryosef.genres og ON og.imdbID = oy.imdbID
+                WHERE og.genre IS NOT NULL
+                GROUP BY og.genre, oy.year
+                HAVING COUNT(DISTINCT oy.imdbID) > %s
         """
         # Execute the query with parameters
-        cursor.execute(query, num_of_movies)
+        cursor.execute(query, (num_of_movies,))
 
         # Fetch the results
         results = cursor.fetchall()
-        print(results)
-        return results
+
+        # Create DataFrame with specified column names
+        df = pd.DataFrame(results, columns=['Genre', 'Year', 'Movies Number'])
+
+        return df
 
     except mysql.connector.Error as err:
         print(f"Error: {err}")
@@ -152,35 +160,41 @@ def query_3(num_of_movies = None):
         # Clean up
         if 'cursor' in locals():
             cursor.close()
-        if 'connection' in locals() and cnx.is_connected():
+        if 'cnx' in locals() and cnx.is_connected():
             cnx.close()
 
-def query_4(word = None): ##need to add FULL-TEXT index for this to work
+
+def query_4(word=None):
     try:
         # Establish connection
         cnx = create_connection()
         cursor = cnx.cursor()
 
-        if word == None:
+        if word is None:
             word = input("Enter the word you want to appear in the plot: ")
 
         # Prepare the query
         query = """
-                select og.imdbID
-                from omeryosef.genres og
-                where og.genre like '%Fantasy%'
-                union all
-                SELECT op.imdbID
+                SELECT og.imdbID, ot.title
+                FROM omeryosef.genres og
+                JOIN omeryosef.title ot ON ot.imdbID = og.imdbID
+                WHERE og.genre LIKE '%Fantasy%'
+                UNION ALL
+                SELECT op.imdbID, ot.title
                 FROM omeryosef.plot op
-                WHERE MATCH(op.fullplot) AGAINST('{word}')
-        """
+                JOIN omeryosef.title ot ON ot.imdbID = op.imdbID
+                WHERE MATCH(op.fullplot) AGAINST(%s IN BOOLEAN MODE)
+                """
         # Execute the query with parameters
-        cursor.execute(query, (f'%{word}%',))
+        cursor.execute(query, (word,))
 
         # Fetch the results
         results = cursor.fetchall()
-        print(results)
-        return results
+
+        # Create DataFrame with specified column names
+        df = pd.DataFrame(results, columns=['IMDBid', 'Title'])
+
+        return df
 
     except mysql.connector.Error as err:
         print(f"Error: {err}")
@@ -188,7 +202,7 @@ def query_4(word = None): ##need to add FULL-TEXT index for this to work
         # Clean up
         if 'cursor' in locals():
             cursor.close()
-        if 'connection' in locals() and cnx.is_connected():
+        if 'cnx' in locals() and cnx.is_connected():
             cnx.close()
 
 def query_5(num_movies_above_avg = None): ##we added FULL-TEXT index on genre and now the query is uper fast (good cause
@@ -231,12 +245,11 @@ def query_5(num_movies_above_avg = None): ##we added FULL-TEXT index on genre an
             HAVING COUNT(DISTINCT imdbID) > %s;
         """
         # Execute the query with parameters
-        cursor.execute(query, num_movies_above_avg)
-
+        cursor.execute(query, (num_movies_above_avg,))
         # Fetch the results
         results = cursor.fetchall()
-        print(results)
-        return results
+        df = pd.DataFrame(results, columns=['director', 'movie_count'])
+        return df
 
     except mysql.connector.Error as err:
         print(f"Error: {err}")
@@ -247,25 +260,22 @@ def query_5(num_movies_above_avg = None): ##we added FULL-TEXT index on genre an
         if 'connection' in locals() and cnx.is_connected():
             cnx.close()
 
-def query_6(actor = None): ##we added FULL-TEXT index on genre and now the query is uper fast (good cause
-    ##genre is used both in join and group by hence the index is very useful)
+
+def query_6(actor=None):
     try:
-        # Establish connection
         cnx = create_connection()
         cursor = cnx.cursor()
 
-        if actor == None:
-            actor = input("Enter your favorite actor: ")
+        if actor is None:
+            actor = input("Enter your favorite actor: ").strip()
 
-        if actor.isalpha() == False:
-            actor = "will smith"
-            print("An actor has to be an alphabetic string")
-        # Prepare the query
+        actor_like_pattern = "%" + actor.replace('%', '%%').replace('_', '\\_') + "%"
+
         query = """
             WITH RECURSIVE years AS (
-              SELECT 2010 as year -- Starting year
+              SELECT 2010 as year
               UNION ALL
-              SELECT year + 1 FROM years WHERE year < YEAR(CURDATE()) -- Ending with the current year
+              SELECT year + 1 FROM years WHERE year < YEAR(CURDATE())
             ),
             movies AS (
               SELECT
@@ -273,7 +283,7 @@ def query_6(actor = None): ##we added FULL-TEXT index on genre and now the query
                 COUNT(DISTINCT oc.imdbID) AS movies_counter,
                 AVG(orr.imdbRating) AS avg_Rating_per_year
               FROM omeryosef.year oy
-              LEFT JOIN omeryosef.crew oc ON oy.imdbID = oc.imdbID AND oc.cast LIKE '%{actor}%'
+              LEFT JOIN omeryosef.crew oc ON oy.imdbID = oc.imdbID AND oc.cast LIKE %s
               LEFT JOIN omeryosef.rating orr ON orr.imdbID = oc.imdbID
               WHERE oy.year >= 2014
               GROUP BY oy.year
@@ -281,24 +291,31 @@ def query_6(actor = None): ##we added FULL-TEXT index on genre and now the query
             SELECT
               y.year,
               COALESCE(m.movies_counter, 0) AS movies_counter,
-              COALESCE(m.avg_Rating_per_year, "No Rating") AS avg_Rating_per_year
+              COALESCE(m.avg_Rating_per_year, 'No Rating') AS avg_Rating_per_year
             FROM years y
             LEFT JOIN movies m ON y.year = m.year
             ORDER BY y.year;
         """
-        # Execute the query with parameters
-        cursor.execute(query, (f'%{actor}%',))
+
+        cursor.execute(query, (actor_like_pattern,))
 
         # Fetch the results
         results = cursor.fetchall()
-        print(results)
-        return results
+
+        # Create DataFrame with correct column names
+        df = pd.DataFrame(results, columns=['Year', 'Movies Counter', 'Average Rating per Year'])
+
+        return df
 
     except mysql.connector.Error as err:
         print(f"Error: {err}")
     finally:
         # Clean up
-        if 'cursor' in locals():
+        if cursor is not None:
             cursor.close()
-        if 'connection' in locals() and cnx.is_connected():
+        if cnx is not None and cnx.is_connected():
             cnx.close()
+
+# Remember to
+
+
