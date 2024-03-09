@@ -5,7 +5,7 @@ pd.set_option('display.max_columns', None)
 
 
 ##You can use the head() method to see all the columns
-#print(que.query_1("Drama"))
+print(que.query_1("Drama"))
 
 #print(que.query_2(1995,2005))
 
@@ -16,3 +16,5 @@ pd.set_option('display.max_columns', None)
 #print(que.query_5(3))
 
 #print(que.query_6("matt damon"))
+
+#print(que.query_7("Sci-Fi"))

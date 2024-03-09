@@ -29,7 +29,7 @@ def query_1(genre=None):
         cursor = cnx.cursor()
 
         if genre is None:
-            genre = input("Enter genre: ").strip()  # This will prompt the user to input the genre
+            genre = input("Enter genre: ").strip().lower()  # This will prompt the user to input the genre
             if not genre:
                 genre = "Comedy"
                 print("You didn't choose a genre, so I will go with Comedy :)")
@@ -41,9 +41,9 @@ def query_1(genre=None):
                ot.title
         FROM omeryosef.genres og
         INNER JOIN omeryosef.title ot ON ot.imdbId = og.imdbID
-        WHERE MATCH(og.genre) AGAINST(%s IN BOOLEAN MODE)
+        WHERE MATCH(LOWER(og.genre)) AGAINST(%s IN BOOLEAN MODE)
         """
-        cursor.execute(query, (genre,))
+        cursor.execute(query, (genre.lower(),))
 
         # Fetch the results
         results = cursor.fetchall()
@@ -317,5 +317,57 @@ def query_6(actor=None):
             cnx.close()
 
 # Remember to
+
+def query_7(genre = None, year = None):
+    try:
+        cnx = create_connection()
+        cursor = cnx.cursor()
+
+        if genre is None:
+            genre = input("Enter genre: ").strip()  # This will prompt the user to input the genre
+            if not genre:
+                genre = "Comedy"
+                print("You didn't choose a genre, so I will go with Comedy :)")
+
+        if year is None:
+            year = input("Enter year: ").strip()
+            if not year:
+                year = 2010
+            else:
+                year = int(year)
+
+        query = """
+            select oy.year, oc.director, og.genre
+                ,count(distinct oc.imdbID) as movies_counter
+            from omeryosef.genres og
+            join omeryosef.crew oc
+            on oc.imdbID = og.imdbID
+            join omeryosef.year oy
+            on oc.imdbID = oy.imdbID
+            WHERE MATCH(og.genre) AGAINST(%s IN BOOLEAN MODE)
+                and oy.year > %s
+                and oc.director is not null
+            group by oy.year, oc.director, og.genre
+            having count(distinct oc.imdbID) > 1
+                    """
+
+        cursor.execute(query, (genre, year))
+
+        # Fetch the results
+        results = cursor.fetchall()
+
+        # Create DataFrame with correct column names
+        df = pd.DataFrame(results, columns=['Year', 'Director', 'Genre','Movies_Counter'])
+
+        return df
+
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+    finally:
+        # Clean up
+        if cursor is not None:
+            cursor.close()
+        if cnx is not None and cnx.is_connected():
+            cnx.close()
 
 
