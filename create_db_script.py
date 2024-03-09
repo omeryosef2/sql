@@ -6,6 +6,7 @@ import mysql.connector
 import mysql.connector
 from mysql.connector import Error
 
+
 def create_table(query_for_creation):
     try:
         connection = mysql.connector.connect(
@@ -27,7 +28,7 @@ def create_table(query_for_creation):
             cursor.close()
 
 create_table_query1 = """
-CREATE TABLE IF NOT EXISTS year (
+CREATE TABLE IF NOT EXISTS year1 (
     imdbID BIGINT PRIMARY KEY,
     year INT
 );
@@ -80,8 +81,8 @@ create_table(create_table_query6)
 
 create_table_query7 = """
 CREATE TABLE IF NOT EXISTS country (
-    imdbID BIGINT PRIMARY KEY,
-    country TEXT
+   imdbID BIGINT PRIMARY KEY,
+   country TEXT
 );
 """
 create_table(create_table_query7)

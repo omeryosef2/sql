@@ -51,7 +51,7 @@ def insert_to_table(df, insert_query, column_names):
             connection.close()
 
 insert_query1 = """
-INSERT INTO year (imdbID, year) VALUES (%s, %s)
+INSERT INTO year1 (imdbID, year) VALUES (%s, %s)
 ON DUPLICATE KEY UPDATE year=VALUES(year);
 """
 column_names1 = ['imdbID','year']
