@@ -86,3 +86,44 @@ CREATE TABLE IF NOT EXISTS country (
 );
 """
 create_table(create_table_query7)
+
+
+def create_index(sql_command):
+    try:
+        # Connect to the MySQL database
+        connection = mysql.connector.connect(
+            host="localhost",
+            database="omeryosef",
+            user="omeryosef",
+            password="omery58087",
+            port=3305
+        )
+
+        # Create a cursor object
+        cursor = connection.cursor()
+
+        # SQL command to create an index on the 'year' column of the 'year' table
+        create_index_sql = sql_command
+
+        # Execute the SQL command
+        cursor.execute(create_index_sql)
+
+        # Commit the changes to the database
+        connection.commit()
+
+        print("Index created successfully.")
+
+    except Error as e:
+        print(f"Error: {e}")
+
+    finally:
+        # Close the cursor and the connection
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+            print("MySQL connection is closed.")
+
+# Call the function to create the index
+create_index("CREATE INDEX idx_year ON omeryosef.year(year);")
+create_index("ALTER TABLE omeryosef.genres ADD FULLTEXT(genre);")
+create_index("ALTER TABLE omeryosef.plot ADD FULLTEXT(fullplot);")

@@ -1,10 +1,5 @@
 import pandas as pd
 import numpy as np
-from tqdm import tqdm
-import mysql
-import mysql.connector
-import mysql.connector
-from mysql.connector import Error
 from mysql.connector import connect, Error
 from tqdm import tqdm
 
