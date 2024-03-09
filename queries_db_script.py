@@ -261,32 +261,42 @@ def query_5(num_movies_above_avg = None): ##we added FULL-TEXT index on genre an
             cnx.close()
 
 
-def query_6(actor=None):
+def query_6(actor=None, start_year=None, end_year=None):
     try:
         cnx = create_connection()
         cursor = cnx.cursor()
 
+        # Default actor input if none provided
         if actor is None:
-            actor = input("Enter your favorite actor: ").strip().lower()  # Convert input to lowercase
+            actor = input("Enter your favorite actor: ").strip()
 
+        # Convert actor input to lowercase for case-insensitive search
+        actor = actor.lower()
         actor_like_pattern = "%" + actor.replace('%', '%%').replace('_', '\\_') + "%"
+
+        # Prompt for start and end year if not provided
+        if start_year is None:
+            start_year = input("Enter the start year: ").strip()
+
+        if end_year is None:
+            end_year = input("Enter the end year: ").strip()
 
         query = """
             WITH RECURSIVE years AS (
-              SELECT 2010 as year
+              SELECT %s AS year
               UNION ALL
-              SELECT year + 1 FROM years WHERE year < YEAR(CURDATE())
+              SELECT year + 1 FROM years WHERE year < %s
             ),
             movies AS (
               SELECT
-                oy.year,
+                y.year,
                 COUNT(DISTINCT oc.imdbID) AS movies_counter,
                 AVG(orr.imdbRating) AS avg_Rating_per_year
-              FROM omeryosef.year oy
-              LEFT JOIN omeryosef.crew oc ON oy.imdbID = oc.imdbID AND LOWER(oc.cast) LIKE %s
+              FROM years y
+              LEFT JOIN omeryosef.crew oc ON oc.cast LIKE %s
               LEFT JOIN omeryosef.rating orr ON orr.imdbID = oc.imdbID
-              WHERE oy.year >= 2014
-              GROUP BY oy.year
+              WHERE y.year BETWEEN %s AND %s
+              GROUP BY y.year
             )
             SELECT
               y.year,
@@ -297,7 +307,7 @@ def query_6(actor=None):
             ORDER BY y.year;
         """
 
-        cursor.execute(query, (actor_like_pattern,))
+        cursor.execute(query, (start_year, end_year, actor_like_pattern, start_year, end_year))
 
         # Fetch the results
         results = cursor.fetchall()
@@ -316,7 +326,6 @@ def query_6(actor=None):
         if cnx is not None and cnx.is_connected():
             cnx.close()
 
-# Remember to
 
 def query_7(genre = None, year = None):
     try:
