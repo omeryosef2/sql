@@ -3,6 +3,8 @@ import numpy as np
 from mysql.connector import connect, Error
 from tqdm import tqdm
 
+from create_db_script import create_table, create_index
+
 zip_path = "./IMDB.zip"
 csv_file_name = "IMDB.csv"
 
@@ -47,7 +49,7 @@ def insert_to_table(df, insert_query, column_names):
 
 def insert_all_tables_data():
     insert_query1 = """
-    INSERT INTO year1 (imdbID, year) VALUES (%s, %s)
+    INSERT INTO year (imdbID, year) VALUES (%s, %s)
     ON DUPLICATE KEY UPDATE year=VALUES(year);
     """
     column_names1 = ['imdbID','year']
