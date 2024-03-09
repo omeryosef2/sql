@@ -27,7 +27,7 @@ def create_table(query_for_creation):
 
 def create_all_tables():
     create_table_query1 = """
-    CREATE TABLE IF NOT EXISTS year1 (
+    CREATE TABLE IF NOT EXISTS year (
         imdbID BIGINT PRIMARY KEY,
         year INT
     );
@@ -54,7 +54,6 @@ def create_all_tables():
     create_table_query4 = """
     CREATE TABLE IF NOT EXISTS plot (
         imdbID BIGINT PRIMARY KEY,
-        plot TEXT,
         fullplot TEXT
     );
     """

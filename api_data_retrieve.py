@@ -54,10 +54,10 @@ def insert_all_tables_data():
     insert_to_table(df, insert_query1, column_names1)
 
     insert_query2 = """
-    INSERT INTO plot (imdbID, plot, fullplot) VALUES (%s, %s, %s)
-    ON DUPLICATE KEY UPDATE plot=VALUES(plot), fullplot=VALUES(fullplot);
+    INSERT INTO plot (imdbID, fullplot) VALUES (%s, %s)
+    ON DUPLICATE KEY UPDATE fullplot=VALUES(fullplot);
     """
-    column_names2 = ['imdbID', 'plot', 'fullplot']
+    column_names2 = ['imdbID', 'fullplot']
     insert_to_table(df, insert_query2, column_names2)
 
     insert_query3 = """
