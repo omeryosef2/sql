@@ -3,9 +3,11 @@ import queries_db_script as que
 import mysql
 pd.set_option('display.max_columns', None)
 
+## possible genres to try the queries on: Drama, Documentary, Comedy, Sci-Fi, Action, Short, Fantasy,
+##Biography, Crime, War, Family, Animation
 
 ##You can use the head() method to see all the columns
-print(que.query_1("Drama"))
+#print(que.query_1("Drama"))
 
 #print(que.query_2(1995,2005))
 

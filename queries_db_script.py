@@ -41,7 +41,7 @@ def query_1(genre=None):
                ot.title
         FROM omeryosef.genres og
         INNER JOIN omeryosef.title ot ON ot.imdbId = og.imdbID
-        WHERE MATCH(LOWER(og.genre)) AGAINST(%s IN BOOLEAN MODE)
+        WHERE MATCH(og.genre) AGAINST(%s IN BOOLEAN MODE)
         """
         cursor.execute(query, (genre.lower(),))
 
@@ -186,7 +186,7 @@ def query_4(word=None):
                 WHERE MATCH(op.fullplot) AGAINST(%s IN BOOLEAN MODE)
                 """
         # Execute the query with parameters
-        cursor.execute(query, (word,))
+        cursor.execute(query, (word.lower(),))
 
         # Fetch the results
         results = cursor.fetchall()
@@ -267,7 +267,7 @@ def query_6(actor=None):
         cursor = cnx.cursor()
 
         if actor is None:
-            actor = input("Enter your favorite actor: ").strip()
+            actor = input("Enter your favorite actor: ").strip().lower()  # Convert input to lowercase
 
         actor_like_pattern = "%" + actor.replace('%', '%%').replace('_', '\\_') + "%"
 
@@ -283,7 +283,7 @@ def query_6(actor=None):
                 COUNT(DISTINCT oc.imdbID) AS movies_counter,
                 AVG(orr.imdbRating) AS avg_Rating_per_year
               FROM omeryosef.year oy
-              LEFT JOIN omeryosef.crew oc ON oy.imdbID = oc.imdbID AND oc.cast LIKE %s
+              LEFT JOIN omeryosef.crew oc ON oy.imdbID = oc.imdbID AND LOWER(oc.cast) LIKE %s
               LEFT JOIN omeryosef.rating orr ON orr.imdbID = oc.imdbID
               WHERE oy.year >= 2014
               GROUP BY oy.year
