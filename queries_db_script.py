@@ -279,22 +279,22 @@ def query_6(actor=None, start_year=None, end_year=None):
         if end_year is None:
             end_year = input("Enter the end year: ").strip()
 
-        query = """
+        query = f"""
             WITH RECURSIVE years AS (
-              SELECT %s AS year
+              SELECT {start_year} AS year
               UNION ALL
-              SELECT year + 1 FROM years WHERE year < %s
+              SELECT year + 1 FROM years WHERE year < {end_year}
             ),
             movies AS (
               SELECT
-                y.year,
+                oy.year,
                 COUNT(DISTINCT oc.imdbID) AS movies_counter,
                 AVG(orr.imdbRating) AS avg_Rating_per_year
-              FROM years y
-              LEFT JOIN omeryosef.crew oc ON oc.cast LIKE %s
+              FROM omeryosef.year oy
+              LEFT JOIN omeryosef.crew oc ON oy.imdbID = oc.imdbID AND oc.cast LIKE %s
               LEFT JOIN omeryosef.rating orr ON orr.imdbID = oc.imdbID
-              WHERE y.year BETWEEN %s AND %s
-              GROUP BY y.year
+              WHERE oy.year >= %s AND oy.year <= %s
+              GROUP BY oy.year
             )
             SELECT
               y.year,
@@ -305,7 +305,7 @@ def query_6(actor=None, start_year=None, end_year=None):
             ORDER BY y.year;
         """
 
-        cursor.execute(query, (start_year, end_year, actor_like_pattern, start_year, end_year))
+        cursor.execute(query, (actor_like_pattern, start_year, end_year))
 
         # Fetch the results
         results = cursor.fetchall()
