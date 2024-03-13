@@ -203,8 +203,7 @@ def query_4(word=None):
         if 'cnx' in locals() and cnx.is_connected():
             cnx.close()
 
-def query_5(num_movies_above_avg = None): ##we added FULL-TEXT index on genre and now the query is uper fast (good cause
-    ##genre is used both in join and group by hence the index is very useful)
+def query_5(num_movies_above_avg = None):
     try:
         # Establish connection
         cnx = create_connection()
